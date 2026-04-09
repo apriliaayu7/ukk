@@ -1,26 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Be+Vietnam+Pro:wght@100..900&display=swap');
+
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-headline: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #0052d0;
+  --color-primary-container: #799dff;
+  --color-secondary: #006859;
+  --color-secondary-container: #26fedc;
+  --color-on-secondary-container: #005d4f;
+  --color-background: #eaf9ff;
+  --color-surface: #eaf9ff;
+  --color-on-surface: #003440;
+  --color-outline: #4b7e8e;
+  --color-outline-variant: #82b5c6;
+  --color-surface-container: #c4efff;
+  --color-surface-container-low: #dbf5ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-highest: #a1e7ff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.glass-nav {
+  background: rgba(161, 231, 255, 0.7);
+  backdrop-filter: blur(20px);
+}
+x
+.neon-glow {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
 }
