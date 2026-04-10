@@ -10,7 +10,10 @@ export async function POST(req: Request) {
 
     if (!text || typeof text !== "string") {
       return NextResponse.json(
-        { error: "Text required" },
+        {
+          error: "Text required",
+          detail: "Body request harus punya field text",
+        },
         { status: 400 }
       )
     }
@@ -23,7 +26,10 @@ export async function POST(req: Request) {
 
     if (!userIdValue) {
       return NextResponse.json(
-        { error: "User belum login / cookie userId tidak ada" },
+        {
+          error: "User belum login",
+          detail: "Cookie userId tidak ada",
+        },
         { status: 401 }
       )
     }
@@ -32,7 +38,10 @@ export async function POST(req: Request) {
 
     if (Number.isNaN(userId)) {
       return NextResponse.json(
-        { error: "userId cookie tidak valid" },
+        {
+          error: "userId cookie tidak valid",
+          detail: `Nilai userId cookie: ${userIdValue}`,
+        },
         { status: 400 }
       )
     }
@@ -43,7 +52,10 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: `User dengan id ${userId} tidak ditemukan` },
+        {
+          error: "User tidak ditemukan",
+          detail: `Tidak ada user dengan id ${userId}`,
+        },
         { status: 404 }
       )
     }
@@ -53,6 +65,7 @@ export async function POST(req: Request) {
         title: parsed.merchant || "Scan Bill",
         total: parsed.grandTotal || 0,
         status: "BELUM",
+        rawText: parsed.rawText,
         createdById: userId,
       },
     })
@@ -87,7 +100,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       {
-        error: err instanceof Error ? err.message : "FAILED",
+        error: "Gagal proses OCR di server",
+        detail: err instanceof Error ? err.message : "Unknown error",
       },
       { status: 500 }
     )

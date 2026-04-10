@@ -1,20 +1,30 @@
 import { NextResponse } from "next/server"
-import Tesseract from "tesseract.js"
 import { parseReceipt } from "@/lib/parseReceipt"
 
 export async function POST(req: Request) {
   try {
-    const { image } = await req.json()
+    const body = await req.json()
+    const text = body?.text
 
-    const result = await Tesseract.recognize(image, "eng")
+    if (!text || typeof text !== "string") {
+      return NextResponse.json(
+        { error: "Text is required" },
+        { status: 400 }
+      )
+    }
 
-    const text = result.data.text
+    const parsed = parseReceipt(text)
 
-    const items = parseReceipt(text)
+    return NextResponse.json({
+      success: true,
+      data: parsed,
+    })
+  } catch (error) {
+    console.error("OCR ERROR:", error)
 
-    return NextResponse.json({ items })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ items: [] })
+    return NextResponse.json(
+      { success: false, error: "Failed to process OCR" },
+      { status: 500 }
+    )
   }
 }

@@ -1,48 +1,129 @@
-type Item = {
+export type ParsedItem = {
   name: string
+  qty: number
   price: number
-  quantity: number
 }
 
-export function parseReceipt(text: string): Item[] {
-  const lines = text.split("\n")
+export type ParsedReceipt = {
+  merchant: string | null
+  date: string | null
+  time: string | null
+  subtotal: number | null
+  tax: number | null
+  grandTotal: number | null
+  items: ParsedItem[]
+  rawText: string
+}
 
-  const items: Item[] = []
+function toNumber(value: string): number {
+  return Number(value.replace(/[^\d]/g, ""))
+}
+
+function cleanLine(line: string): string {
+  return line.replace(/\s+/g, " ").trim()
+}
+
+function isMetaLine(line: string): boolean {
+  const lower = line.toLowerCase()
+
+  const blocked = [
+    "date",
+    "time in",
+    "info",
+    "purpose",
+    "cashier",
+    "subtotal",
+    "grand total",
+    "qris",
+    "qris pos",
+    "pb1",
+    "pbi",
+    "items",
+    "terima kasih",
+    "pelanggan",
+    "nomor",
+  ]
+
+  return blocked.some((word) => lower.includes(word))
+}
+
+function parseItemLine(line: string): ParsedItem | null {
+  const cleaned = cleanLine(line)
+  if (!cleaned) return null
+  if (isMetaLine(cleaned)) return null
+
+  const match = cleaned.match(/^(\d+)\s+(.+?)\s+(\d[\d.]*)$/)
+  if (!match) return null
+
+  const qty = Number(match[1])
+  const name = match[2].trim()
+  const price = toNumber(match[3])
+
+  if (!qty || !name || !price) return null
+
+  return { qty, name, price }
+}
+
+export function parseReceipt(text: string): ParsedReceipt {
+  const lines = text.split("\n").map(cleanLine).filter(Boolean)
+
+  let merchant: string | null = null
+  let date: string | null = null
+  let time: string | null = null
+  let subtotal: number | null = null
+  let tax: number | null = null
+  let grandTotal: number | null = null
+  const items: ParsedItem[] = []
 
   for (const line of lines) {
-    const clean = line.trim()
+    const lower = line.toLowerCase()
 
-    // ❌ skip header & metadata
-    if (
-      clean.toLowerCase().includes("date") ||
-      clean.toLowerCase().includes("time") ||
-      clean.toLowerCase().includes("total") ||
-      clean.toLowerCase().includes("subtotal") ||
-      clean.toLowerCase().includes("pb1") ||
-      clean.toLowerCase().includes("qris") ||
-      clean.toLowerCase().includes("cashier") ||
-      clean.length < 5
-    ) continue
+    if (!merchant && lower.includes("dikichi")) {
+      merchant = line
+    }
 
-    // 🔥 MATCH: qty + name + price
-    const match = clean.match(/^(\d+)\s+(.*?)\s+([\d.,]+)$/)
+    if (!date) {
+      const dateMatch = line.match(/(\d{2}-\d{2}-\d{4})/)
+      if (dateMatch) date = dateMatch[1]
+    }
 
-    if (match) {
-      const qty = Number(match[1])
-      const name = match[2]
+    if (!time) {
+      const timeMatch = line.match(/(\d{2}:\d{2})/)
+      if (timeMatch) time = timeMatch[1]
+    }
 
-      // 🔥 convert 33.636 → 33636
-      const price = Number(match[3].replace(/\./g, "").replace(/,/g, ""))
+    if (lower.includes("subtotal")) {
+      const match = line.match(/subtotal\s*:?\s*(\d[\d.]*)/i)
+      if (match) subtotal = toNumber(match[1])
+      continue
+    }
 
-      if (!isNaN(price) && price > 500) {
-        items.push({
-          name,
-          price,
-          quantity: qty
-        })
-      }
+    if (lower.includes("pbi") || lower.includes("pb1")) {
+      const match = line.match(/(pbi|pb1)\s*:?\s*(\d[\d.]*)/i)
+      if (match) tax = toNumber(match[2])
+      continue
+    }
+
+    if (lower.includes("grand total")) {
+      const match = line.match(/grand total\s*:?\s*(\d[\d.]*)/i)
+      if (match) grandTotal = toNumber(match[1])
+      continue
+    }
+
+    const parsedItem = parseItemLine(line)
+    if (parsedItem) {
+      items.push(parsedItem)
     }
   }
 
-  return items
+  return {
+    merchant,
+    date,
+    time,
+    subtotal,
+    tax,
+    grandTotal,
+    items,
+    rawText: text,
+  }
 }

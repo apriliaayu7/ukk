@@ -7,7 +7,7 @@ import { motion } from "framer-motion"
 
 type ParticipantType = {
   id: number
-  userId: number
+  userId: number | null
   billId: number
   totalShare: number
   isPaid: boolean

@@ -60,11 +60,11 @@ model BillItem {
 model Participant {
   id        Int @id @default(autoincrement())
 
-  userId    Int
+  userId    Int?
   name      String
   billId    Int
 
-  user      User @relation(fields: [userId], references: [id])
+  user      User? @relation(fields: [userId], references: [id])
   bill      Bill @relation(fields: [billId], references: [id])
 
   totalShare Int     @default(0)
