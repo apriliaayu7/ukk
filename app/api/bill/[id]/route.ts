@@ -3,17 +3,40 @@ import { NextResponse } from "next/server"
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const billId = Number(params.id)
+  try {
+    const { id } = await context.params
+    const billId = Number(id)
 
-  const bill = await prisma.bill.findUnique({
-    where: { id: billId },
-    include: {
-      items: true,
-      participants: true,
+    if (Number.isNaN(billId)) {
+      return NextResponse.json(
+        { error: "Bill ID tidak valid" },
+        { status: 400 }
+      )
     }
-  })
 
-  return NextResponse.json(bill)
+    const bill = await prisma.bill.findUnique({
+      where: { id: billId },
+      include: {
+        items: true,
+        participants: true,
+      },
+    })
+
+    if (!bill) {
+      return NextResponse.json(
+        { error: "Bill tidak ditemukan" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(bill)
+  } catch (error) {
+    console.error("GET BILL ERROR:", error)
+    return NextResponse.json(
+      { error: "Gagal mengambil bill" },
+      { status: 500 }
+    )
+  }
 }

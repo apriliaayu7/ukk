@@ -19,46 +19,61 @@ type Participant = {
 export function AssignItems() {
   const params = useSearchParams()
   const router = useRouter()
-
   const billId = params.get("billId")
 
   const [items, setItems] = useState<Item[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
 
-  // ✅ FETCH DATA (NO SETSTATE LOOP)
   useEffect(() => {
     if (!billId) return
 
     const fetchData = async () => {
-      const res = await fetch(`/api/bill/${billId}`)
-      const data = await res.json()
+      try {
+        const res = await fetch(`/api/bill/${billId}`)
+        const raw = await res.text()
 
-      setItems(
-        data.items.map((i: { id: number; name: string; price: number }) => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          assignedTo: []
-        }))
-      )
+        let data: any = {}
+        try {
+          data = raw ? JSON.parse(raw) : {}
+        } catch {
+          throw new Error("Response bill bukan JSON")
+        }
 
-      setParticipants(data.participants)
+        if (!res.ok) {
+          throw new Error(data.error || "Gagal mengambil bill")
+        }
+
+        setItems(
+          (data.items || []).map(
+            (i: { id: number; name: string; price: number }) => ({
+              id: i.id,
+              name: i.name,
+              price: i.price,
+              assignedTo: [],
+            })
+          )
+        )
+
+        setParticipants(data.participants || [])
+      } catch (error) {
+        console.error("FETCH ASSIGN ITEMS ERROR:", error)
+        alert(error instanceof Error ? error.message : "Gagal load data")
+      }
     }
 
     fetchData()
   }, [billId])
 
-  // ✅ TOGGLE ASSIGN
   const toggleAssign = (itemId: number, participantId: number) => {
-    setItems(prev =>
-      prev.map(item => {
+    setItems((prev) =>
+      prev.map((item) => {
         if (item.id === itemId) {
           const exists = item.assignedTo.includes(participantId)
           return {
             ...item,
             assignedTo: exists
-              ? item.assignedTo.filter(id => id !== participantId)
-              : [...item.assignedTo, participantId]
+              ? item.assignedTo.filter((id) => id !== participantId)
+              : [...item.assignedTo, participantId],
           }
         }
         return item
@@ -70,17 +85,42 @@ export function AssignItems() {
   const tax = subtotal * 0.15
   const total = subtotal + tax
 
-  // ✅ SAVE SPLIT
   const handleNext = async () => {
-    await fetch(`/api/bill/${billId}/split`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ items })
-    })
+    try {
+      const assignments = items.map((item) => ({
+        itemId: item.id,
+        participantIds: item.assignedTo,
+      }))
 
-    router.push(`/dashboard/bill/${billId}`)
+      const res = await fetch("/api/bill/split", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          billId: Number(billId),
+          assignments,
+        }),
+      })
+
+      const raw = await res.text()
+
+      let data: any = {}
+      try {
+        data = raw ? JSON.parse(raw) : {}
+      } catch {
+        throw new Error("Response split bukan JSON")
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal simpan split")
+      }
+
+      router.push(`/dashboard/bill/${billId}`)
+    } catch (error) {
+      console.error("SAVE SPLIT ERROR:", error)
+      alert(error instanceof Error ? error.message : "Gagal simpan split")
+    }
   }
 
   return (
@@ -88,20 +128,20 @@ export function AssignItems() {
       <h2 className="text-3xl font-bold mb-6">Assign Items</h2>
 
       <div className="grid grid-cols-2 gap-6">
-        {items.map(item => (
+        {items.map((item) => (
           <div key={item.id} className="border p-4 rounded-xl">
             <h3 className="font-bold">{item.name}</h3>
             <p>Rp {item.price.toLocaleString()}</p>
 
-            <div className="flex gap-2 mt-4">
-              {participants.map(p => {
+            <div className="flex gap-2 mt-4 flex-wrap">
+              {participants.map((p) => {
                 const active = item.assignedTo.includes(p.id)
 
                 return (
                   <button
                     key={p.id}
                     onClick={() => toggleAssign(item.id, p.id)}
-                    className={`px-3 py-1 rounded-full text-sm ${
+                    className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
                       active ? "bg-blue-500 text-white" : "bg-gray-200"
                     }`}
                   >
@@ -118,9 +158,7 @@ export function AssignItems() {
       <div className="mt-10 border-t pt-6">
         <p>Subtotal: Rp {subtotal.toLocaleString()}</p>
         <p>Tax: Rp {tax.toLocaleString()}</p>
-        <h3 className="font-bold text-xl">
-          Total: Rp {total.toLocaleString()}
-        </h3>
+        <h3 className="font-bold text-xl">Total: Rp {total.toLocaleString()}</h3>
 
         <button
           onClick={handleNext}
