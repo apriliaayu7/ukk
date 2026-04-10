@@ -1,21 +1,10 @@
-import { Sidebar } from "@/components/Sidebar"
-import { TopBar } from "@/components/TopBar"
+import { Suspense } from "react"
 import { AssignItems } from "@/components/AssignItems"
 
-export default function Page() {
+export default function AssignItemsPage() {
   return (
-    <div className="flex">
-      {/* SIDEBAR */}
-      <Sidebar />
-
-      {/* MAIN */}
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
-        <TopBar />
-
-        <main className="flex-1 p-6">
-          <AssignItems />
-        </main>
-      </div>
-    </div>
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <AssignItems />
+    </Suspense>
   )
 }

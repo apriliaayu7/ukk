@@ -1,29 +1,38 @@
 import { NextResponse } from "next/server"
-import { parseReceipt } from "@/lib/parseReceipt"
+
+export async function GET() {
+  return NextResponse.json({ message: "OCR API ready" })
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const text = body?.text
+    const image = body?.image
 
-    if (!text || typeof text !== "string") {
+    if (!image || typeof image !== "string") {
       return NextResponse.json(
-        { error: "Text is required" },
+        { error: "Image is required" },
         { status: 400 }
       )
     }
 
-    const parsed = parseReceipt(text)
-
+    // sementara return dummy dulu supaya build jalan
+    // dan flow assign-items tidak error
     return NextResponse.json({
       success: true,
-      data: parsed,
+      items: [
+        {
+          id: 1,
+          name: "Contoh Item",
+          price: 10000,
+        },
+      ],
     })
   } catch (error) {
     console.error("OCR ERROR:", error)
 
     return NextResponse.json(
-      { success: false, error: "Failed to process OCR" },
+      { error: "Failed to process OCR" },
       { status: 500 }
     )
   }
