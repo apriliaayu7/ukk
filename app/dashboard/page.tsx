@@ -1,36 +1,49 @@
 import { prisma } from "@/lib/prisma"
 import Dashboard from "@/components/Dashboard"
-
 import { Sidebar } from "@/components/Sidebar"
 import { TopBar } from "@/components/TopBar"
+import { cookies } from "next/headers"
+
 export default async function DashboardPage() {
-  const user = await prisma.user.findFirst({
+  const cookieStore = await cookies()
+  const userIdValue = cookieStore.get("userId")?.value
+
+  if (!userIdValue) {
+    return <div>Belum login</div>
+  }
+
+  const userId = Number(userIdValue)
+
+  if (Number.isNaN(userId)) {
+    return <div>User tidak valid</div>
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
     include: {
       participants: {
         include: {
           bill: {
-            include: { participants: true }
+            include: { participants: true },
           },
-          summary: true
-        }
-      }
-    }
+          summary: true,
+        },
+      },
+    },
   })
 
   if (!user) {
     return <div>Tidak ada data</div>
   }
 
-  // 🔥 ambil bill aktif
   const activeParticipant = user.participants.find(
-    p => p.bill.status === "BELUM"
+    (p) => p.bill.status === "BELUM"
   )
 
   const activeBill = activeParticipant?.bill || null
   const activeSummary = activeParticipant?.summary || null
 
-  // 🔥 riwayat
-  const recentBills = user.participants.map(p => ({
+  const recentBills = user.participants.map((p) => ({
     id: p.bill.id,
     title: p.bill.title,
     total: p.bill.total,
@@ -40,26 +53,21 @@ export default async function DashboardPage() {
   }))
 
   return (
-  <div>
-    
-    {/* ✅ Sidebar (fixed kiri) */}
-    <Sidebar />
+    <div>
+      <Sidebar />
 
-    {/* ✅ TopBar (di atas, geser ke kanan biar gak ketimpa sidebar) */}
-    <div className="ml-64">
-      <TopBar />
+      <div className="ml-64">
+        <TopBar />
+      </div>
+
+      <main className="ml-64 pt-20 p-6">
+        <Dashboard
+          user={user}
+          activeBill={activeBill}
+          activeSummary={activeSummary}
+          recentBills={recentBills}
+        />
+      </main>
     </div>
-
-    {/* ✅ Main content */}
-    <main className="ml-64 pt-20 p-6">
-      <Dashboard
-        user={user}
-        activeBill={activeBill}
-        activeSummary={activeSummary}
-        recentBills={recentBills}
-      />
-    </main>
-
-  </div>
-)
+  )
 }
