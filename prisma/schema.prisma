@@ -1,25 +1,3 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String 
-  balance   Int      @default(0)
-  createdAt DateTime @default(now())
-
-  billsCreated Bill[]        @relation("UserCreatedBills")
-  participants Participant[]
-  payments     Payment[]
-}
-
 model Bill {
   id          Int      @id @default(autoincrement())
   title       String
@@ -28,7 +6,7 @@ model Bill {
   status      String   // BELUM | LUNAS
 
   imageUrl    String?
-  rawText     String?
+  rawText     String?  @db.LongText
 
   createdById Int
   createdBy   User @relation("UserCreatedBills", fields: [createdById], references: [id])
@@ -40,89 +18,4 @@ model Bill {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model BillItem {
-  id        Int    @id @default(autoincrement())
-  name      String
-  quantity  Int
-  price     Int
-  subtotal  Int
-
-  billId    Int
-  bill      Bill   @relation(fields: [billId], references: [id])
-
-  splits    ItemSplit[]
-
-  createdAt DateTime @default(now())
-}
-
-model Participant {
-  id        Int @id @default(autoincrement())
-
-  userId    Int?
-  name      String
-  billId    Int
-
-  user      User? @relation(fields: [userId], references: [id])
-  bill      Bill @relation(fields: [billId], references: [id])
-
-  totalShare Int     @default(0)
-  isPaid     Boolean @default(false)
-
-  splits     ItemSplit[]
-  summary    UserBillSummary?
-
-  createdAt DateTime @default(now())
-
-  @@unique([userId, billId])
-}
-
-model ItemSplit {
-  id            Int @id @default(autoincrement())
-
-  billItemId    Int
-  participantId Int
-
-  quantity      Int
-  subtotal      Int
-
-  billItem    BillItem    @relation(fields: [billItemId], references: [id])
-  participant Participant @relation(fields: [participantId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([billItemId, participantId])
-}
-
-model UserBillSummary {
-  id            Int @id @default(autoincrement())
-
-  billId        Int
-  participantId Int @unique
-
-  totalAmount   Int
-  isPaid        Boolean @default(false)
-
-  pdfUrl        String?
-  imageUrl      String?
-
-  bill          Bill @relation(fields: [billId], references: [id])
-  participant   Participant @relation(fields: [participantId], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
-model Payment {
-  id        Int      @id @default(autoincrement())
-  amount    Int
-  status    String   // PENDING | SUCCESS
-
-  payerId   Int
-  billId    Int
-
-  payer     User @relation(fields: [payerId], references: [id])
-  bill      Bill @relation(fields: [billId], references: [id])
-
-  createdAt DateTime @default(now())
 }
